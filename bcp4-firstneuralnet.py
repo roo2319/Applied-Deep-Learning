@@ -38,7 +38,8 @@ class MLP(nn.Module):
         
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         x = self.l1(inputs)
-        x = self.activation_fn(x)
+        x = relu(x)
+        # x = self.activation_fn(x)
         x = self.l2(x)
         return x
 
@@ -90,6 +91,18 @@ def accuracy(probs: torch.FloatTensor, targets: torch.LongTensor) -> float:
 #             0.0)
 # print("All test cases passed")
 
+def relu(inputs: torch.Tensor) -> torch.Tensor:
+    # We take a copy of the input as otherwise we'll be modifying it in
+    # place which makes it harder to debug.
+    outputs = inputs.clone()  
+    outputs[inputs < 0] = 0
+    return outputs
+
+def softmax(logits: torch.Tensor) -> torch.Tensor:
+    x_exp = torch.exp(logits)
+    x_exp_sum = torch.sum(torch.exp(logits),dim=1,keepdim=True)
+    return x_exp/x_exp_sum
+
 
 def deep_learn():
     feature_count = 4
@@ -104,10 +117,11 @@ def deep_learn():
     features["test"] = features["test"].to(device)
     labels["train"] = labels["train"].to(device)
     labels["test"] = labels["test"].to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.005)
-    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.1)
+    CEL = nn.CrossEntropyLoss()
+    criterion = lambda logits, ys: CEL(softmax(logits), ys)
 
-    for epoch in range(100):
+    for epoch in range(1000):
 
         logits = model.forward(features['train'])
         # logits.shape is (100,3)
